@@ -150,7 +150,7 @@
   </aside>
 
   <div id="bottom">
-    <input id="search" class="glass" type="text" placeholder="Search the web" autocomplete="off" aria-label="Search the web">
+    <input id="search" class="glass" type="text" placeholder="Search the web" autocomplete="off" aria-label="Search the web" autofocus>
     <nav id="dock" class="glass" aria-label="Quick links"></nav>
   </div>
 
@@ -325,6 +325,7 @@
   };
 
   applyImages(); renderDock(); loadWeather();
+  $("search").focus();
 })();
 </script>
 </body>
