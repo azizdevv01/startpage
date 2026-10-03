@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Start</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink: #0d0d0e;
+    --paper: #ecebe7;
+    --glass: rgba(236, 235, 231, .16);
+    --glass-edge: rgba(255, 255, 255, .28);
+    --text: #f4f3ef;
+    --muted: rgba(244, 243, 239, .62);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "SF Pro Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    background: var(--ink);
+    overflow: hidden;
+  }
+
+  /* Background: your image if set, otherwise an ink-wash fallback */
+  #bg {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(60% 70% at 38% 42%, #d9d8d3 0%, #8e8d89 28%, #2a2a2b 62%, #0d0d0e 100%);
+    background-size: cover; background-position: center;
+    filter: grayscale(1) contrast(1.05);
+  }
+  #bg.has-image { filter: none; }
+  #shade {
+    position: fixed; inset: 0; pointer-events: none;
+    background: linear-gradient(to top, rgba(0,0,0,.55), transparent 38%),
+                linear-gradient(to bottom, rgba(0,0,0,.25), transparent 30%);
+  }
+
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+    backdrop-filter: blur(22px) saturate(1.2);
+    border-radius: 26px;
+  }
+
+  /* Clock */
+  #clock { position: fixed; top: 4vh; left: 3vw; padding: 18px 22px 16px; min-width: 170px; }
+  #day { font-size: clamp(48px, 7vw, 84px); font-weight: 300; line-height: .95; letter-spacing: -.02em; }
+  #dateline { margin-top: 6px; font-size: 14px; color: var(--muted); }
+  #time {
+    margin-top: 14px; font-size: 22px; font-weight: 500;
+    font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  }
+
+  /* Right column */
+  #side { position: fixed; top: 4vh; right: 3vw; width: min(240px, 26vw); display: grid; gap: 14px; }
+  #photo {
+    aspect-ratio: 1 / 1; border-radius: 26px; overflow: hidden; cursor: pointer;
+    background: var(--glass) center / cover; border: 1px solid var(--glass-edge);
+  }
+  #photo.empty { display: grid; place-items: center; font-size: 13px; color: var(--muted); text-align: center; padding: 16px; }
+  #weather { padding: 16px 20px; }
+  #temp { font-size: 44px; font-weight: 300; line-height: 1; }
+  #cond { margin-top: 8px; font-size: 14px; color: var(--muted); }
+  #city { margin-top: 2px; font-size: 13px; color: var(--muted); }
+
+  /* Search + dock */
+  #bottom {
+    position: fixed; left: 0; right: 0; bottom: 4.5vh;
+    display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 0 16px;
+  }
+  #search {
+    width: min(460px, 86vw); padding: 12px 20px; border-radius: 999px;
+    color: var(--text); font: inherit; font-size: 15px; outline: none;
+  }
+  #search::placeholder { color: var(--muted); }
+  #search:focus { border-color: rgba(255,255,255,.6); }
+  #dock {
+    display: flex; gap: 14px; padding: 12px 16px; border-radius: 30px;
+    max-width: 94vw; overflow-x: auto;
+  }
+  #dock a {
+    flex: none; width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center;
+    background: rgba(20, 20, 22, .55); border: 1px solid rgba(255,255,255,.14);
+    color: var(--text); text-decoration: none; font-weight: 600; font-size: 20px;
+    transition: transform .15s ease;
+  }
+  #dock a:hover, #dock a:focus-visible { transform: translateY(-5px) scale(1.06); outline: none; border-color: rgba(255,255,255,.55); }
+  #dock img { width: 30px; height: 30px; border-radius: 6px; }
+
+  /* Settings */
+  #open-settings {
+    position: fixed; right: 3vw; bottom: 4.5vh; background: none; border: 0;
+    color: var(--text); font: inherit; font-size: 14px; cursor: pointer; opacity: .75;
+    padding: 8px; text-shadow: 0 1px 8px rgba(0,0,0,.7);
+  }
+  #open-settings:hover { opacity: 1; }
+  #panel {
+    position: fixed; inset: 0; display: none; place-items: center;
+    background: rgba(0,0,0,.45); z-index: 10;
+  }
+  #panel.open { display: grid; }
+  #card {
+    width: min(480px, 92vw); max-height: 88vh; overflow: auto; padding: 24px;
+    background: rgba(24, 24, 26, .88); display: grid; gap: 16px;
+  }
+  #card h2 { font-size: 20px; font-weight: 600; }
+  #card label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+  #card input[type=text], #card textarea {
+    width: 100%; padding: 10px 12px; border-radius: 12px; font: inherit; font-size: 14px;
+    color: var(--text); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+  }
+  #card textarea { min-height: 120px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  #card input[type=file] { font-size: 13px; color: var(--muted); }
+  .row { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn {
+    padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.08); color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
+  }
+  .btn.primary { background: var(--paper); color: var(--ink); border-color: var(--paper); font-weight: 600; }
+  .link-btn { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; text-align: left; cursor: pointer; padding: 0; text-decoration: underline; }
+
+  @media (max-width: 700px) {
+    #side { width: 150px; }
+    #photo { display: none; }
+    #time { font-size: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { #dock a { transition: none; } }
+</style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="shade"></div>
+
+  <section id="clock" class="glass" aria-label="Date and time">
+    <div id="day">--</div>
+    <div id="dateline"></div>
+    <div id="time">--:--:--</div>
+  </section>
+
+  <aside id="side">
+    <div id="photo" class="empty" role="button" tabindex="0" title="Change photo">Tap to add a photo</div>
+    <div id="weather" class="glass" aria-label="Weather">
+      <div id="temp">--°</div>
+      <div id="cond">Loading weather</div>
+      <div id="city"></div>
+    </div>
+  </aside>
+
+  <div id="bottom">
+    <input id="search" class="glass" type="text" placeholder="Search the web" autocomplete="off" aria-label="Search the web">
+    <nav id="dock" class="glass" aria-label="Quick links"></nav>
+  </div>
+
+  <button id="open-settings">Settings</button>
+
+  <div id="panel" role="dialog" aria-modal="true" aria-label="Settings">
+    <div id="card" class="glass">
+      <h2>Settings</h2>
+      <label>Background image
+        <input id="bg-file" type="file" accept="image/*">
+      </label>
+      <button class="link-btn" id="bg-reset">Remove background image</button>
+      <label>Photo widget
+        <input id="photo-file" type="file" accept="image/*">
+      </label>
+      <label>City for weather
+        <input id="city-input" type="text" placeholder="Casablanca">
+      </label>
+      <label>Dock links (one per line: name, address)
+        <textarea id="links-input" spellcheck="false"></textarea>
+      </label>
+      <div class="row">
+        <button class="btn" id="cancel">Cancel</button>
+        <button class="btn primary" id="save">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  };
+
+  const DEFAULT_LINKS = [
+    ["YouTube", "https://www.youtube.com"],
+    ["Gmail", "https://mail.google.com"],
+    ["GitHub", "https://github.com"],
+    ["Reddit", "https://www.reddit.com"],
+    ["X", "https://x.com"],
+    ["Spotify", "https://open.spotify.com"],
+    ["Claude", "https://claude.ai"]
+  ];
+
+  /* ---------- Clock ---------- */
+  function tick() {
+    const d = new Date();
+    $("day").textContent = d.getDate();
+    $("dateline").textContent = d.toLocaleDateString(undefined, { weekday: "long", month: "long" });
+    $("time").textContent = d.toLocaleTimeString([], { hour12: false });
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* ---------- Images ---------- */
+  function applyImages() {
+    const bg = store.get("bgImage", null);
+    $("bg").style.backgroundImage = bg ? "url(" + bg + ")" : "";
+    $("bg").classList.toggle("has-image", !!bg);
+    const ph = store.get("photoImage", null);
+    const el = $("photo");
+    el.style.backgroundImage = ph ? "url(" + ph + ")" : "";
+    el.classList.toggle("empty", !ph);
+    el.textContent = ph ? "" : "Tap to add a photo";
+  }
+
+  function readImage(file, maxSide) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const s = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  /* ---------- Dock ---------- */
+  function renderDock() {
+    const dock = $("dock");
+    dock.textContent = "";
+    store.get("links", DEFAULT_LINKS).forEach(([name, url]) => {
+      const a = document.createElement("a");
+      a.href = url; a.title = name;
+      let host = "";
+      try { host = new URL(url).hostname; } catch (e) {}
+      const img = new Image();
+      img.alt = name;
+      img.src = "https://www.google.com/s2/favicons?sz=64&domain=" + host;
+      img.onerror = () => { a.textContent = name.charAt(0).toUpperCase(); };
+      a.appendChild(img);
+      dock.appendChild(a);
+    });
+  }
+
+  /* ---------- Search ---------- */
+  $("search").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const q = e.target.value.trim();
+    if (!q) return;
+    const looksLikeUrl = /^(https?:\/\/|[\w-]+\.[a-z]{2,}(\/|$))/i.test(q) && !/\s/.test(q);
+    location.href = looksLikeUrl
+      ? (/^https?:\/\//i.test(q) ? q : "https://" + q)
+      : "https://www.google.com/search?q=" + encodeURIComponent(q);
+  });
+
+  /* ---------- Weather (Open-Meteo, no key needed) ---------- */
+  const CODES = { 0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Fog",
+    51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain",
+    71: "Light snow", 73: "Snow", 75: "Heavy snow", 80: "Showers", 81: "Showers", 82: "Heavy showers",
+    95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm" };
+
+  async function loadWeather() {
+    const city = store.get("city", "Casablanca");
+    try {
+      const g = await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(city))).json();
+      if (!g.results || !g.results.length) throw new Error("City not found");
+      const p = g.results[0];
+      const w = await (await fetch("https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code&latitude=" + p.latitude + "&longitude=" + p.longitude)).json();
+      $("temp").textContent = Math.round(w.current.temperature_2m) + "°C";
+      $("cond").textContent = CODES[w.current.weather_code] || "—";
+      $("city").textContent = p.name;
+    } catch (e) {
+      $("temp").textContent = "--°";
+      $("cond").textContent = "Weather unavailable";
+      $("city").textContent = "Check city name or connection";
+    }
+  }
+
+  /* ---------- Settings ---------- */
+  let pendingBg, pendingPhoto;   // undefined = unchanged, null = remove, string = new
+  function openPanel() {
+    pendingBg = pendingPhoto = undefined;
+    $("bg-file").value = ""; $("photo-file").value = "";
+    $("city-input").value = store.get("city", "Casablanca");
+    $("links-input").value = store.get("links", DEFAULT_LINKS).map(l => l[0] + ", " + l[1]).join("\n");
+    $("panel").classList.add("open");
+  }
+  const closePanel = () => $("panel").classList.remove("open");
+
+  $("open-settings").onclick = openPanel;
+  $("cancel").onclick = closePanel;
+  $("panel").addEventListener("click", (e) => { if (e.target === $("panel")) closePanel(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePanel(); });
+  $("photo").onclick = openPanel;
+  $("photo").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") openPanel(); };
+
+  $("bg-file").onchange = async (e) => { if (e.target.files[0]) pendingBg = await readImage(e.target.files[0], 1920); };
+  $("photo-file").onchange = async (e) => { if (e.target.files[0]) pendingPhoto = await readImage(e.target.files[0], 600); };
+  $("bg-reset").onclick = () => { pendingBg = null; $("bg-file").value = ""; };
+
+  $("save").onclick = () => {
+    if (pendingBg !== undefined) store.set("bgImage", pendingBg);
+    if (pendingPhoto !== undefined) store.set("photoImage", pendingPhoto);
+    const links = $("links-input").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+      const i = l.indexOf(",");
+      const name = (i > -1 ? l.slice(0, i) : l).trim();
+      let url = (i > -1 ? l.slice(i + 1) : l).trim();
+      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+      return [name, url];
+    });
+    store.set("links", links.length ? links : DEFAULT_LINKS);
+    store.set("city", $("city-input").value.trim() || "Casablanca");
+    applyImages(); renderDock(); loadWeather(); closePanel();
+  };
+
+  applyImages(); renderDock(); loadWeather();
+})();
+</script>
+</body>
+</html>
